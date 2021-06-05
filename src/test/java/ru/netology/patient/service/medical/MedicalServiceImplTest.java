@@ -17,9 +17,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class MedicalServiceImplTest {
     BloodPressure currentPressure = new BloodPressure(60, 120);
+    BloodPressure normalPressure = new BloodPressure(120, 80);
     HealthInfo healthInfo = new HealthInfo(new BigDecimal("36.65"), new BloodPressure(120, 80));
     PatientInfo info= new PatientInfo("1","Иван", "Петров", LocalDate.of(1980, 11, 26),healthInfo);
     BigDecimal currentTemperature = new BigDecimal("34.9");
@@ -36,7 +39,7 @@ class MedicalServiceImplTest {
         SendAlertService sendAlertService = Mockito.mock(SendAlertServiceImpl.class);
         MedicalServiceImpl medicalService = new MedicalServiceImpl(repository,sendAlertService);
         medicalService.checkBloodPressure("1",currentPressure);
-        Mockito.verify(sendAlertService).send(argumentCaptor.capture());
+        verify(sendAlertService).send(argumentCaptor.capture());
         assertEquals("Warning, patient with id: 1, need help",argumentCaptor.getValue());
     }
 
@@ -49,7 +52,7 @@ class MedicalServiceImplTest {
         SendAlertService sendAlertService = Mockito.mock(SendAlertServiceImpl.class);
         MedicalServiceImpl medicalService = new MedicalServiceImpl(repository,sendAlertService);
         medicalService.checkTemperature("1",currentTemperature);
-        Mockito.verify(sendAlertService).send(argumentCaptor.capture());
+        verify(sendAlertService).send(argumentCaptor.capture());
         assertEquals("Warning, patient with id: 1, need help",argumentCaptor.getValue());
     }
 
@@ -62,8 +65,21 @@ class MedicalServiceImplTest {
         SendAlertService sendAlertService = Mockito.mock(SendAlertServiceImpl.class);
         MedicalServiceImpl medicalService = new MedicalServiceImpl(repository,sendAlertService);
         medicalService.checkTemperature("1",normalTemperature);
-        Mockito.verify(sendAlertService).send(argumentCaptor.capture());
-        assertNull(argumentCaptor.getValue());
+        verify(sendAlertService, times(0)).send("Warning, patient with id: 1, need help");
+
 
     }
+
+    @Test
+    void checkNormalBloodPressure() {
+        String id1 = "1";
+        ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
+        PatientInfoFileRepository repository = Mockito.mock(PatientInfoFileRepository.class);
+        Mockito.when(repository.getById(id1)).thenReturn(info);
+        SendAlertService sendAlertService = Mockito.mock(SendAlertServiceImpl.class);
+        MedicalServiceImpl medicalService = new MedicalServiceImpl(repository,sendAlertService);
+        medicalService.checkBloodPressure("1",normalPressure);
+        verify(sendAlertService, times(0)).send("Warning, patient with id: 1, need help");
+    }
+
 }
